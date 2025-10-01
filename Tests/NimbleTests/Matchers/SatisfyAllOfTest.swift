@@ -54,7 +54,7 @@ final class SatisfyAllOfTest: XCTestCase {
     }
 
     #if !os(WASI)
-    func testSatisfyAllOfCachesExpressionBeforePassingToPredicates() {
+    func testSatisfyAllOfCachesExpressionBeforePassingToMatchers() {
         // This is not a great example of assertion writing - functions being asserted on in Expressions should not have side effects.
         // But we should still handle those cases anyway.
         var value: Int = 0
@@ -68,10 +68,10 @@ final class SatisfyAllOfTest: XCTestCase {
     #endif
 
     // There's a compiler bug in swift 5.7.2 and earlier (xcode 14.2 and earlier)
-    // which causes runtime crashes when you use `[any AsyncablePredicate<T>]`.
+    // which causes runtime crashes when you use `[any AsyncableMatcher<T>]`.
     // https://github.com/apple/swift/issues/61403
     #if swift(>=5.8.0)
-    // MARK: - AsyncPredicate variant
+    // MARK: - AsyncMatcher variant
     @available(macOS 13.0.0, iOS 16.0.0, tvOS 16.0.0, watchOS 9.0.0, *)
     func testAsyncSatisfyAllOf() async {
         await expect(2).to(satisfyAllOf(asyncEqual(2), beLessThan(3)))
@@ -83,11 +83,11 @@ final class SatisfyAllOfTest: XCTestCase {
         await expect(true).toNot(satisfyAllOf(beTruthy(), beFalsy(), asyncEqual(true)))
 
         await failsWithErrorMessage(
-        "expected to match all of: {equal <3>}, and {equal <4>}, and {equal <5>}, got 2") {
+        "expected to match all of: {equal 3}, and {equal 4}, and {equal 5}, got 2") {
             await expect(2).to(satisfyAllOf(asyncEqual(3), asyncEqual(4), asyncEqual(5)))
         }
         await failsWithErrorMessage(
-        "expected to match all of: {all be less than 4, but failed first at element <5> in <[5, 6, 7]>}, and {equal <[5, 6, 7]>}, got [5, 6, 7]") {
+        "expected to match all of: {all be less than 4, but failed first at element <5> in <[5, 6, 7]>}, and {equal [5, 6, 7]}, got [5, 6, 7]") {
             await expect([5, 6, 7]).to(satisfyAllOf(allPass("be less than 4", {$0 < 4}), asyncEqual([5, 6, 7])))
         }
         await failsWithErrorMessage(
@@ -122,7 +122,7 @@ final class SatisfyAllOfTest: XCTestCase {
 
     #if !os(WASI)
     @available(macOS 13.0.0, iOS 16.0.0, tvOS 16.0.0, watchOS 9.0.0, *)
-    func testAsyncSatisfyAllOfCachesExpressionBeforePassingToPredicates() async {
+    func testAsyncSatisfyAllOfCachesExpressionBeforePassingToMatchers() async {
         // This is not a great example of assertion writing - functions being asserted on in Expressions should not have side effects.
         // But we should still handle those cases anyway.
         actor Counter {

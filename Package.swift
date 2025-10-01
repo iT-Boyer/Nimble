@@ -20,6 +20,7 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/mattgallagher/CwlPreconditionTesting.git", .upToNextMajor(from: "2.1.0")),
+        .package(url: "https://github.com/apple/swift-docc-plugin", from: "1.0.0"),
     ],
     targets: {
         var testHelperDependencies: [PackageDescription.Target.Dependency] = ["Nimble"]
@@ -35,7 +36,10 @@ let package = Package(
                     .product(name: "CwlPosixPreconditionTesting", package: "CwlPreconditionTesting",
                              condition: .when(platforms: [.tvOS, .watchOS]))
                 ],
-                exclude: ["Info.plist"]
+                exclude: ["Info.plist"],
+                resources: [
+                    .copy("PrivacyInfo.xcprivacy")
+                ]
             ),
             .target(
                 name: "NimbleSharedTestHelpers",

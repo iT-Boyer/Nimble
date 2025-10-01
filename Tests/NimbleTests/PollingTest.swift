@@ -1,7 +1,7 @@
 #if !os(WASI)
 
-import Dispatch
 import CoreFoundation
+import Dispatch
 import Foundation
 import XCTest
 import Nimble
@@ -129,13 +129,40 @@ final class PollingTest: XCTestCase {
     }
 
     func testWaitUntilDetectsStalledMainThreadActivity() {
-        let msg = "-waitUntil() timed out but was unable to run the timeout handler because the main thread is unresponsive (0.5 seconds is allow after the wait times out). Conditions that may cause this include processing blocking IO on the main thread, calls to sleep(), deadlocks, and synchronous IPC. Nimble forcefully stopped run loop which may cause future failures in test run."
+        let msg = "-waitUntil() timed out but was unable to run the timeout handler because the main thread is unresponsive. (0.5 seconds is allowed after the wait times out) Conditions that may cause this include processing blocking IO on the main thread, calls to sleep(), deadlocks, and synchronous IPC. Nimble forcefully stopped the run loop which may cause future failures in test runs."
         failsWithErrorMessage(msg) {
             waitUntil(timeout: .seconds(1)) { done in
                 Thread.sleep(forTimeInterval: 3.0)
                 done()
             }
         }
+    }
+    
+    func testToEventuallyDetectsStalledMainThreadActivity() {
+        func spinAndReturnTrue() -> Bool {
+            Thread.sleep(forTimeInterval: 0.5)
+            return true
+        }
+        let msg = "expected to eventually be true, got <true> (timed out, but main run loop was unresponsive)."
+        failsWithErrorMessage(msg) {
+            expect(spinAndReturnTrue()).toEventually(beTrue())
+        }
+    }
+    
+    func testToNeverDoesNotFailStalledMainThreadActivity() {
+        func spinAndReturnTrue() -> Bool {
+            Thread.sleep(forTimeInterval: 0.5)
+            return true
+        }
+        expect(spinAndReturnTrue()).toNever(beFalse())
+    }
+    
+    func testToAlwaysDetectsStalledMainThreadActivity() {
+        func spinAndReturnTrue() -> Bool {
+            Thread.sleep(forTimeInterval: 0.5)
+            return true
+        }
+        expect(spinAndReturnTrue()).toAlways(beTrue())
     }
 
     func testCombiningAsyncWaitUntilAndToEventuallyIsNotAllowed() {
@@ -146,9 +173,9 @@ final class PollingTest: XCTestCase {
             Unexpected exception raised: Nested async expectations are not allowed to avoid creating flaky tests.
 
             The call to
-            \texpect(...).toEventually(...) at \(#file):\(referenceLine + 7)
+            \texpect(...).toEventually(...) at \(#file):\(referenceLine + 7):23
             triggered this exception because
-            \twaitUntil(...) at \(#file):\(referenceLine + 1)
+            \twaitUntil(...) at \(#file):\(referenceLine + 1):34
             is currently managing the main run loop.
             """
         failsWithErrorMessage(msg) { // reference line
@@ -293,6 +320,9 @@ final class PollingTest: XCTestCase {
         failsWithErrorMessage("unexpected error thrown: <\(errorToThrow)>") {
             expect { try self.doThrowError() }.neverTo(equal(0))
         }
+        failsWithErrorMessage("expected to never equal <0>, got <0>") {
+            expect(0).toNever(equal(0))
+        }
     }
 
     func testToAlwaysPositiveMatches() {
@@ -325,6 +355,9 @@ final class PollingTest: XCTestCase {
         }
         failsWithErrorMessage("unexpected error thrown: <\(errorToThrow)>") {
             expect { try self.doThrowError() }.alwaysTo(equal(0))
+        }
+        failsWithErrorMessage("expected to always equal <0>, got <nil> (use beNil() to match nils)") {
+            expect(nil).toAlways(equal(0))
         }
     }
 }

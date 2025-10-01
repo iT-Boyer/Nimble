@@ -52,7 +52,7 @@ final class SatisfyAnyOfTest: XCTestCase {
     }
 
     #if !os(WASI)
-    func testSatisfyAllOfCachesExpressionBeforePassingToPredicates() {
+    func testSatisfyAllOfCachesExpressionBeforePassingToMatchers() {
         // This is not a great example of assertion writing - functions being asserted on in Expressions should not have side effects.
         // But we should still handle those cases anyway.
         var value: Int = 0
@@ -68,7 +68,7 @@ final class SatisfyAnyOfTest: XCTestCase {
     #endif
 
     // There's a compiler bug in swift 5.7 and earlier (xcode 14.2 and earlier)
-    // which causes runtime crashes when you use `[any AsyncablePredicate<T>]`.
+    // which causes runtime crashes when you use `[any AsyncableMatcher<T>]`.
     // https://github.com/apple/swift/issues/61403
     #if swift(>=5.8.0)
     // MARK: - Async Variant
@@ -83,11 +83,11 @@ final class SatisfyAnyOfTest: XCTestCase {
         await expect(true).to(satisfyAnyOf(beTruthy(), beFalsy(), asyncEqual(false), asyncEqual(true)))
 
         await failsWithErrorMessage(
-            "expected to match one of: {equal <3>}, or {equal <4>}, or {equal <5>}, got 2") {
+            "expected to match one of: {equal 3}, or {equal 4}, or {equal 5}, got 2") {
                 await expect(2).to(satisfyAnyOf(asyncEqual(3), asyncEqual(4), asyncEqual(5)))
         }
         await failsWithErrorMessage(
-            "expected to match one of: {all be less than 4, but failed first at element <5> in <[5, 6, 7]>}, or {equal <[1, 2, 3, 4]>}, got [5, 6, 7]") {
+            "expected to match one of: {all be less than 4, but failed first at element <5> in <[5, 6, 7]>}, or {equal [1, 2, 3, 4]}, got [5, 6, 7]") {
                 await expect([5, 6, 7]).to(satisfyAnyOf(allPass("be less than 4", {$0 < 4}), asyncEqual([1, 2, 3, 4])))
         }
         await failsWithErrorMessage(
@@ -120,7 +120,7 @@ final class SatisfyAnyOfTest: XCTestCase {
 
     #if !os(WASI)
     @available(macOS 13.0.0, iOS 16.0.0, tvOS 16.0.0, watchOS 9.0.0, *)
-    func testAsyncSatisfyAllOfCachesExpressionBeforePassingToPredicates() async {
+    func testAsyncSatisfyAllOfCachesExpressionBeforePassingToMatchers() async {
         // This is not a great example of assertion writing - functions being asserted on in Expressions should not have side effects.
         // But we should still handle those cases anyway.
         actor Counter {

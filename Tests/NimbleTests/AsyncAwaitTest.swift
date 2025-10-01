@@ -6,7 +6,7 @@ import Nimble
 import NimbleSharedTestHelpers
 #endif
 
-final class AsyncAwaitTest: XCTestCase {
+final class AsyncAwaitTest: XCTestCase { // swiftlint:disable:this type_body_length
     func testToPositiveMatches() async {
         func someAsyncFunction() async throws -> Int {
             try await Task.sleep(nanoseconds: 1_000_000) // 1 millisecond
@@ -85,7 +85,7 @@ final class AsyncAwaitTest: XCTestCase {
     @MainActor
     func testToEventuallyOnMain() async {
         await expect(1).toEventually(equal(1), timeout: .seconds(300))
-        await expect { usleep(10); return 1 }.toEventually(equal(1))
+        await expect { try? await Task.sleep(nanoseconds: 10_000); return 1 }.toEventually(equal(1))
     }
 
     @MainActor
@@ -189,6 +189,15 @@ final class AsyncAwaitTest: XCTestCase {
         }
     }
 
+    func testWaitUntilUsingSendable() async {
+        await waitUntil { done in
+            let queue = OperationQueue()
+            let op = BlockOperation {}
+            op.completionBlock = done
+            queue.addOperation(op)
+        }
+    }
+
     func testWaitUntilTimesOutIfNotCalled() async {
         await failsWithErrorMessage("Waited more than 1.0 second") {
             await waitUntil(timeout: .seconds(1)) { _ in return }
@@ -233,7 +242,7 @@ final class AsyncAwaitTest: XCTestCase {
     }
 
     func testWaitUntilDetectsStalledMainThreadActivity() async {
-        let msg = "-waitUntil() timed out but was unable to run the timeout handler because the main thread is unresponsive (0.5 seconds is allow after the wait times out). Conditions that may cause this include processing blocking IO on the main thread, calls to sleep(), deadlocks, and synchronous IPC. Nimble forcefully stopped run loop which may cause future failures in test run."
+        let msg = "Waited more than 1.0 second"
         await failsWithErrorMessage(msg) {
             await waitUntil(timeout: .seconds(1)) { done in
                 Thread.sleep(forTimeInterval: 3.0)
@@ -371,6 +380,9 @@ final class AsyncAwaitTest: XCTestCase {
         }
         await failsWithErrorMessage("unexpected error thrown: <\(errorToThrow)>") {
             await expect { try self.doThrowError() }.alwaysTo(equal(0))
+        }
+        await failsWithErrorMessage("expected to always equal <0>, got <nil> (use beNil() to match nils)") {
+            await expect(nil).toAlways(equal(0))
         }
     }
 }

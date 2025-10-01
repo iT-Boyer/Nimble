@@ -8,28 +8,39 @@ private func asyncCheck(_ closure: () -> Bool) async -> Bool {
     closure()
 }
 
-private func asyncBeLessThan<T: Comparable>(_ expectedValue: T?) -> AsyncPredicate<T> {
+private func asyncBeLessThan<T: Comparable>(_ expectedValue: T?) -> AsyncMatcher<T> {
     let message = "be less than <\(stringify(expectedValue))>"
-    return AsyncPredicate.simple(message) { actualExpression in
+    return AsyncMatcher.simple(message) { actualExpression in
         guard let actual = try await actualExpression.evaluate(), let expected = expectedValue else { return .fail }
 
-        return PredicateStatus(bool: actual < expected)
+        return MatcherStatus(bool: actual < expected)
     }
 }
 
-private func asyncBeGreaterThan<T: Comparable>(_ expectedValue: T?) -> AsyncPredicate<T> {
+private func asyncBeGreaterThan<T: Comparable>(_ expectedValue: T?) -> AsyncMatcher<T> {
     let message = "be greater than <\(stringify(expectedValue))>"
-    return AsyncPredicate.simple(message) { actualExpression in
+    return AsyncMatcher.simple(message) { actualExpression in
         guard let actual = try await actualExpression.evaluate(), let expected = expectedValue else { return .fail }
 
-        return PredicateStatus(bool: actual > expected)
+        return MatcherStatus(bool: actual > expected)
     }
 }
 
-private func asyncBeNil<T>() -> AsyncPredicate<T> {
-    return AsyncPredicate.simpleNilable("be nil") { actualExpression in
+private protocol _OptionalProtocol {
+    var isNil: Bool { get }
+}
+
+extension Optional: _OptionalProtocol {
+    var isNil: Bool { self == nil }
+}
+
+private func asyncBeNil<T>() -> AsyncMatcher<T> {
+    return AsyncMatcher.simpleNilable("be nil") { actualExpression in
         let actualValue = try await actualExpression.evaluate()
-        return PredicateStatus(bool: actualValue == nil)
+        if let actual = actualValue, let nestedOptionl = actual as? _OptionalProtocol {
+            return MatcherStatus(bool: nestedOptionl.isNil)
+        }
+        return MatcherStatus(bool: actualValue == nil)
     }
 }
 
